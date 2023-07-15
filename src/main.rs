@@ -1,6 +1,6 @@
 use regex::Regex;
 use std::cmp::{Ordering, Reverse};
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, LinkedList};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -48,12 +48,12 @@ impl std::fmt::Debug for Edge {
 }
 
 fn prim(adjacency_matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
-    let mut edges_graph = Vec::new();
+    let mut edges_heap = BinaryHeap::new();
 
     for i in 0..adjacency_matrix.len() {
         for j in (i + 1)..adjacency_matrix.len() {
             if adjacency_matrix[i][j] != 0 {
-                edges_graph.push(Reverse(Edge {
+                edges_heap.push(Reverse(Edge {
                     src: i as u32,
                     dst: j as u32,
                     weight: adjacency_matrix[i][j],
@@ -62,27 +62,22 @@ fn prim(adjacency_matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
         }
     }
 
-    // Sort edges by weight
-    edges_graph.sort();
-
-    let vertices_num = adjacency_matrix.len();
+    let vertices = adjacency_matrix.len();
     let mut non_visited: Vec<bool> = Vec::new();
+    let mut temp = LinkedList::new();
     let mut mst: Vec<Edge> = Vec::new();
 
-    for edge in edges_graph.iter() {
-        println!(
-            "src: {} dst: {} peso: {}",
-            edge.0.src, edge.0.dst, edge.0.weight
-        );
+    for i in 0..edges_heap.len() {
+        println!("Heap {}: {:?}", i + 1, edges_heap.peek().unwrap().0);
     }
-    println!("\nVertices: {}\n", vertices_num);
+    println!("\nVertices: {}\n", vertices);
 
     // Initialize non-visited vertices
-    for _ in 0..vertices_num {
+    for _ in 0..vertices {
         non_visited.push(true);
     }
 
-    let first_edge = edges_graph.pop().unwrap().0;
+    let first_edge = edges_heap.pop().unwrap().0;
 
     non_visited[first_edge.src as usize] = false;
     non_visited[first_edge.dst as usize] = false;
@@ -93,8 +88,8 @@ fn prim(adjacency_matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
         println!("Non-visited {}: {}", i, non_visited[i]);
     }
 
-    while mst.len() < vertices_num - 1 {
-        let edge_to_work = edges_graph.pop().unwrap().0;
+    while mst.len() < vertices - 1 {
+        let edge_to_work = edges_heap.pop().unwrap().0;
 
         if !(non_visited[edge_to_work.src as usize] && non_visited[edge_to_work.dst as usize])
             && (non_visited[edge_to_work.src as usize] || non_visited[edge_to_work.dst as usize])
@@ -104,15 +99,24 @@ fn prim(adjacency_matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
 
             mst.push(edge_to_work);
 
-            edges_graph.sort();
+            while !temp.is_empty() {
+                edges_heap.push(Reverse(temp.pop_back().unwrap()));
+            }
         } else {
-            edges_graph.push(Reverse(edge_to_work));
+            temp.push_back(edge_to_work);
+            continue;
         }
     }
 
-    println!("\n------------MST----------");
-    for edge in mst {
-        println!("src: {} dst: {} peso: {}", edge.src, edge.dst, edge.weight);
+    println!("\n-------------MST-------------");
+    for i in 0..mst.len() {
+        println!(
+            "{} - src: {} dst: {} peso: {}",
+            i + 1,
+            mst[i].src,
+            mst[i].dst,
+            mst[i].weight
+        );
     }
 
     let temp: Vec<Vec<i32>> = Vec::new();
