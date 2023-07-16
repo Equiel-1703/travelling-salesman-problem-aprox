@@ -1,6 +1,6 @@
 use regex::Regex;
 use std::cmp::{Ordering, Reverse};
-use std::collections::{BinaryHeap, LinkedList};
+use std::collections::{BinaryHeap, LinkedList, VecDeque};
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
@@ -118,9 +118,52 @@ fn prim(adjacency_matrix: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
             mst[i].weight
         );
     }
+    println!();
 
-    let temp: Vec<Vec<i32>> = Vec::new();
-    temp
+    // Initialize the minimum spanning tree graph with zeros
+    let mut mst_adjacency_matrix: Vec<Vec<i32>> = vec![vec![0; mst.len() + 1]; mst.len() + 1];
+
+    // Fill in the weights for the minimum spanning tree edges
+    for edge in mst {
+        mst_adjacency_matrix[edge.src as usize][edge.dst as usize] = edge.weight;
+        //mst_adjacency_matrix[edge.dst as usize][edge.src as usize] = edge.weight;
+    }
+
+    println!("\n-------------MST ADJACENCY MATRIX-------------");
+    for i in 0..mst_adjacency_matrix.len() {
+        println!("{:?}", mst_adjacency_matrix[i]);
+    }
+
+    return mst_adjacency_matrix;
+}
+
+fn get_all_kids(node: i32, adjacency_matrix: &Vec<Vec<i32>>) -> VecDeque<i32> {
+    let mut kids = VecDeque::new();
+
+    for i in 0..adjacency_matrix.len() {
+        if adjacency_matrix[node as usize][i] != 0 {
+            kids.push_back(i as i32);
+        }
+    }
+
+    return kids;
+}
+
+fn get_aprox_path(node: i32, adjacency_matrix: &Vec<Vec<i32>>) -> VecDeque<i32> {
+    let mut path: VecDeque<i32> = VecDeque::new();
+
+    let mut kids = get_all_kids(node, &adjacency_matrix);
+    println!("Kids for {}: {:?}", node, kids);
+
+    while !kids.is_empty() {
+        path.append(&mut get_aprox_path(
+            kids.pop_front().unwrap(),
+            &adjacency_matrix,
+        ));
+    }
+    path.push_back(node);
+
+    return path;
 }
 
 fn main() {
@@ -164,8 +207,19 @@ fn main() {
         adjacency_matrix.push(temp);
     }
 
-    // Calculando tamanho da matriz
-    let tam_matriz: u32 = adjacency_matrix.len() as u32;
+    let mst_adjacency_matrix = prim(adjacency_matrix.clone());
+    let path = get_aprox_path(0, &mst_adjacency_matrix);
 
-    prim(adjacency_matrix);
+    // Aprox path is backwards and miss the return to the first node
+    let mut path: VecDeque<i32> = path.into_iter().rev().collect();
+    path.push_back(0);
+
+    println!("\n-------------APROX PATH-------------");
+    println!("{:?}", path);
+
+    let mut total_weight = 0;
+    for i in 0..path.len() - 1 {
+        total_weight += adjacency_matrix[path[i] as usize][path[i + 1] as usize];
+    }
+    println!("Custo caminho: {}", total_weight);
 }
